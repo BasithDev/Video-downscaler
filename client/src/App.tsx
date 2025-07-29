@@ -1,35 +1,63 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from 'react';
+import UploaderBox from './components/UploaderBox';
+import { Toaster } from 'react-hot-toast';
+import UploadsList from './components/UploadsList';
+import VideoPlayer from './components/VideoPlayer';
+import type { VideoMeta } from './components/VideoPlayer';
+
+// Dummy processed video data for demo
+const dummyVideos: VideoMeta[] = [
+  {
+    filename: 'Sample_480p.mp4',
+    url: 'https://youtube.com/shorts/RNH_Y-XLZvQ?si=TErmnz1_VAY4aqV7',
+    size: '4.2 MB',
+  },
+  {
+    filename: 'Sample_360p.mp4',
+    url: 'https://www.w3schools.com/html/movie.mp4',
+    size: '2.1 MB',
+  },
+  {
+    filename: 'Sample_240p.mp4',
+    url: 'https://samplelib.com/mp4/sample-5s.mp4',
+    size: '0.5 MB',
+  },
+];
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [selectedVideo, setSelectedVideo] = useState<VideoMeta | null>(null);
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <Toaster position="top-center" toastOptions={{
+        style: { background: '#f57b11', color: '#fff', fontWeight: 600 },
+        iconTheme: { primary: '#fff', secondary: '#f57b11' }
+      }} />
+      <header className="p-4 shadow-lg flex justify-center">
+        <h1 
+          style={{ color: '#f57b11' }}
+          className="text-4xl font-bold">
+          Video Downscaler
+        </h1>
+      </header>
+
+      <div className="flex h-screen">
+        <div className="w-1/4 border-r border-gray-300">
+          <div className="p-4">
+            <UploaderBox />
+            <UploadsList
+              videos={dummyVideos}
+              onSelect={setSelectedVideo}
+              selected={selectedVideo}
+            />
+          </div>
+        </div>
+        <div className="w-3/4 p-4">
+          <VideoPlayer video={selectedVideo} />
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
