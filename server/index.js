@@ -8,6 +8,11 @@ const fs = require('fs');
 const app = express();
 const port = 3000;
 const upload = multer({ dest: 'uploads/' });
+const outputsDir = path.join(__dirname, 'outputs');
+if (!fs.existsSync(outputsDir)) {
+    fs.mkdirSync(outputsDir, { recursive: true });
+}
+app.use('/outputs', express.static(outputsDir));
 
 const getVideoResolution = (videoPath) => {
     return new Promise((resolve, reject) => {
@@ -54,6 +59,8 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         }
         
         await new Promise((resolve) => {
+            let completedWorkers = 0;
+            const totalWorkers = targetResolutions.length;
             targetResolutions.forEach((res) => {
                 const worker = new Worker('./worker.js', {
                     workerData: {
@@ -63,47 +70,28 @@ app.post('/upload', upload.single('video'), async (req, res) => {
                         outputName: `${fileName}_${res.name}.mp4`
                     }
                 });
-
+                let done = false;
+                function finish() {
+                    if (!done) {
+                        done = true;
+                        completedWorkers++;
+                        if (completedWorkers === totalWorkers) resolve();
+                    }
+                }
                 worker.on('message', (message) => {
-                    console.log(`Worker message for ${res.name}:`, message);
-                    
-                    if (message.error) {
-                        console.error(`Error processing ${res.name}:`, message.error);
-                    } else {
+                    if (!message.error) {
                         results.push({
                             resolution: res,
                             outputPath: message.outputPath
                         });
                     }
-                    processedResolutions.add(res.name);
+                    finish();
                 });
-
                 worker.on('error', (error) => {
                     console.error(`Worker error for ${res.name}:`, error);
-                    processedResolutions.add(res.name);
-                    checkCompletion();
-                });
-
-                worker.on('exit', (code) => {
-                    if (code !== 0) {
-                        console.error(`Worker for ${res.name} exited with code ${code}`);
-                        if (!processedResolutions.has(res.name)) {
-                            processedResolutions.add(res.name);
-                            checkCompletion();
-                        }
-                    } else if (!processedResolutions.has(res.name)) {
-                        processedResolutions.add(res.name);
-                        checkCompletion();
-                    }
+                    finish();
                 });
             });
-
-            function checkCompletion() {
-                completedWorkers++;
-                if (completedWorkers === targetResolutions.length) {
-                    resolve();
-                }
-            }
         });
 
         if (fs.existsSync(filePath)) {
@@ -113,10 +101,25 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         const totalCount = targetResolutions.length;
         
         if (processedCount > 0) {
+            // Build metadata for each processed file
+            const videos = results.map(({ resolution, outputPath }) => {
+                const filename = path.basename(outputPath);
+                const absPath = path.join(outputsDir, filename);
+                let size = 0;
+                try {
+                    size = fs.existsSync(absPath) ? fs.statSync(absPath).size : 0;
+                } catch (e) {}
+                return {
+                    filename,
+                    url: `/outputs/${filename}`,
+                    size: `${(size / (1000 * 1000)).toFixed(2)} MB`,
+                    resolution: `${resolution.width}x${resolution.height}`
+                };
+            });
             res.json({
                 success: processedCount === totalCount,
                 message: `Processed ${processedCount} out of ${totalCount} resolutions`,
-                results: results
+                videos
             });
         } else {
             res.status(500).json({

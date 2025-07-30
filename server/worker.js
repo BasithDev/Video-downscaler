@@ -55,11 +55,11 @@ const command = ffmpeg(filePath)
 
 command.on('progress', (progress) => {
     const now = Date.now();
-    if (now - lastProgressUpdate > 8000) {
+    if (now - lastProgressUpdate > 3000) {
         const percent = Math.round(progress.percent) || 0;
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         const remaining = Math.floor((elapsed / percent) * (100 - percent));
-        console.log(`Processing ${outputName}: ${percent}% done (${elapsed}s elapsed, ~${remaining}s remaining)`);
+        console.log(`Processing ${outputName}: ${percent}% done (${elapsed}s elapsed, ~${remaining}s remaining) [${'#'.repeat(Math.floor(percent / 10)) + '-'.repeat(10 - Math.floor(percent / 10))}]`);
         lastProgressUpdate = now;
     }
 });
