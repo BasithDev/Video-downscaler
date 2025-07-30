@@ -75,7 +75,10 @@ app.post('/upload', upload.single('video'), async (req, res) => {
                     if (!done) {
                         done = true;
                         completedWorkers++;
-                        if (completedWorkers === totalWorkers) resolve();
+                        if (completedWorkers === totalWorkers) {
+                            console.log('All worker threads closed for this request.');
+                            resolve();
+                        }
                     }
                 }
                 worker.on('message', (message) => {
@@ -102,20 +105,22 @@ app.post('/upload', upload.single('video'), async (req, res) => {
         
         if (processedCount > 0) {
             // Build metadata for each processed file
-            const videos = results.map(({ resolution, outputPath }) => {
-                const filename = path.basename(outputPath);
-                const absPath = path.join(outputsDir, filename);
-                let size = 0;
-                try {
-                    size = fs.existsSync(absPath) ? fs.statSync(absPath).size : 0;
-                } catch (e) {}
-                return {
-                    filename,
-                    url: `/outputs/${filename}`,
-                    size: `${(size / (1000 * 1000)).toFixed(2)} MB`,
-                    resolution: `${resolution.width}x${resolution.height}`
-                };
-            });
+            const videos = results
+                .filter(({ outputPath }) => typeof outputPath === 'string' && outputPath.length > 0)
+                .map(({ resolution, outputPath }) => {
+                    const filename = path.basename(outputPath);
+                    const absPath = path.join(outputsDir, filename);
+                    let size = 0;
+                    try {
+                        size = fs.existsSync(absPath) ? fs.statSync(absPath).size : 0;
+                    } catch (e) {}
+                    return {
+                        filename,
+                        url: `/outputs/${filename}`,
+                        size: `${(size / (1000 * 1000)).toFixed(2)} MB`,
+                        resolution: `${resolution.width}x${resolution.height}`
+                    };
+                });
             res.json({
                 success: processedCount === totalCount,
                 message: `Processed ${processedCount} out of ${totalCount} resolutions`,

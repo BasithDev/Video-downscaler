@@ -9,6 +9,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "cli-progress": "^3.12.0",
     "express": "^5.1.0",
     "fluent-ffmpeg": "^2.1.3",
     "multer": "^2.0.2"

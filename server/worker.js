@@ -59,7 +59,7 @@ command.on('progress', (progress) => {
         const percent = Math.round(progress.percent) || 0;
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         const remaining = Math.floor((elapsed / percent) * (100 - percent));
-        console.log(`Processing ${outputName}: ${percent}% done (${elapsed}s elapsed, ~${remaining}s remaining) [${'#'.repeat(Math.floor(percent / 10)) + '-'.repeat(10 - Math.floor(percent / 10))}]`);
+        process.stdout.write(`\nProcessing ${outputName}: ${percent}% done (${elapsed}s elapsed, ~${remaining}s remaining) [${'#'.repeat(Math.floor(percent / 10)) + '-'.repeat(10 - Math.floor(percent / 10))}]\n`);
         lastProgressUpdate = now;
     }
 });
@@ -77,6 +77,7 @@ command.on('start', () => {
 });
 
 command.on('end', () => {
+    parentPort.postMessage({ progress: 100, elapsed: Math.floor((Date.now() - startTime) / 1000), outputName });
     try {
         if (fs.existsSync(tempOutputFile)) {
             if (fs.existsSync(outputPath)) {
